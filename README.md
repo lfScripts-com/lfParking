@@ -46,6 +46,7 @@ Config.Parkings = {
         type = "boat"
     }
 }
+```
 
 ## Utilisation
 
