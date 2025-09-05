@@ -201,7 +201,9 @@ function DepositVehicle(parkingId)
     if Config.Parkings[parkingId].job ~= nil then
         ESX.TriggerServerCallback('parking:depositJobVehicle', function(success)
             if success then
-                TriggerEvent('Persistance:removeVehicles', vehicle)
+                if Config.lfPersistence then
+                    TriggerEvent('Persistance:removeVehicles', vehicle)
+                end
                 ESX.Game.DeleteVehicle(vehicle)
                 ESX.ShowNotification('Véhicule de service déposé pour ' .. Config.Parkings[parkingId].price.deposit .. '$')
             end
@@ -209,7 +211,9 @@ function DepositVehicle(parkingId)
     else
         ESX.TriggerServerCallback('parking:depositVehicle', function(success)
             if success then
-                TriggerEvent('Persistance:removeVehicles', vehicle)
+                if Config.lfPersistence then
+                    TriggerEvent('Persistance:removeVehicles', vehicle)
+                end
                 ESX.Game.DeleteVehicle(vehicle)
                 ESX.ShowNotification('Véhicule déposé pour ' .. Config.Parkings[parkingId].price.deposit .. '$')
             end
@@ -368,7 +372,9 @@ AddEventHandler('parking:spawnVehicle', function(vehicleData, engineHealth, whee
                 TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, -1)
                 SetVehicleEngineOn(vehicle, true, true, false)
                 
-                TriggerEvent('Persistance:addVehicles', vehicle)
+                if Config.lfPersistence then
+                    TriggerEvent('Persistance:addVehicles', vehicle)
+                end
                 
                 ESX.ShowNotification('Bateau récupéré pour ' .. Config.Parkings[CurrentActionData.parkingId].price.retrieve .. '$')
             else
@@ -389,7 +395,9 @@ AddEventHandler('parking:spawnVehicle', function(vehicleData, engineHealth, whee
                 TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, -1)
                 SetVehicleEngineOn(vehicle, true, true, false)
                 
-                TriggerEvent('Persistance:addVehicles', vehicle)
+                if Config.lfPersistence then
+                    TriggerEvent('Persistance:addVehicles', vehicle)
+                end
                 
                 ESX.ShowNotification('Véhicule récupéré pour ' .. Config.Parkings[CurrentActionData.parkingId].price.retrieve .. '$')
             else
@@ -425,7 +433,9 @@ AddEventHandler('parking:spawnJobVehicle', function(vehicleData)
                 TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, -1)
                 SetVehicleEngineOn(vehicle, true, true, false)
                 
-                TriggerEvent('Persistance:addVehicles', vehicle)
+                if Config.lfPersistence then
+                    TriggerEvent('Persistance:addVehicles', vehicle)
+                end
                 
                 ESX.ShowNotification('Bateau de service récupéré')
             else
@@ -442,7 +452,9 @@ AddEventHandler('parking:spawnJobVehicle', function(vehicleData)
                 TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, -1)
                 SetVehicleEngineOn(vehicle, true, true, false)
                 
-                TriggerEvent('Persistance:addVehicles', vehicle)
+                if Config.lfPersistence then
+                    TriggerEvent('Persistance:addVehicles', vehicle)
+                end
                 
                 ESX.ShowNotification('Véhicule de service récupéré')
             else

@@ -1,5 +1,7 @@
 Config = {}
 
+Config.lfPersistence = true
+
 Config.Parkings = {
     {
         id = 4,
