@@ -1,6 +1,6 @@
 Config = {}
 
-Config.lfPersistence = true
+Config.lfPersistence = false
 
 Config.Parkings = {
     {
