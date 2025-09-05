@@ -1,6 +1,6 @@
 Config = {}
 
-Config.lfPersistence = true
+Config.lfPersistence = false
 
 Config.Parkings = {
     {
@@ -33,16 +33,48 @@ Config.Parkings = {
             retrieve = 50
         },
         type = "boat",
+        allowStolen = true
+    },
+    {
+        id = 3,
+        name = "Parking Public",
+        depositPoint = vector3(-333.468140, -1070.439576, 23.01171),
+        retrievePoint = vector3(-336.949462, -1067.050538, 23.011718),
+        spawnPoint = {
+            coords = vector3(-340.404388, -1068.514282, 23.011718),
+            heading = 170.078736
+        },
+        price = {
+            deposit = 50,
+            retrieve = 50
+        },
+        type = "car",
         allowStolen = false
+    },
+    {
+        id = 4,
+        name = "Parking Public",
+        depositPoint = vector3(61.094506, 24.909892, 69.68566),
+        retrievePoint = vector3(68.940658, 15.810990, 69.11279),
+        spawnPoint = {
+            coords = vector3(63.890110, 16.760440, 69.16333),
+            heading = 334.488190
+        },
+        price = {
+            deposit = 50,
+            retrieve = 50
+        },
+        type = "car",
+        allowStolen = true
     },
     {
         id = 6,
         name = "Parking Bateaux Police",
-        depositPoint = vector3(-1047.08, 6574.72, 1.90),
-        retrievePoint = vector3(-1031.92, 6583.56, 1.90),
+        depositPoint = vector3(-720.158264, -1361.274780, 0.112792),
+        retrievePoint = vector3(-725.314270, -1373.920898, 1.578736),
         spawnPoint = {
-            coords = vector3(-1009.85, 6569.02, 1.79),
-            heading = 87.01
+            coords = vector3(-730.641784, -1373.037354, 0.112792),
+            heading = 136.062988
         },
         price = {
             deposit = 0,
