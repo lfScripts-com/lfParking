@@ -204,6 +204,10 @@ function DepositVehicle(parkingId)
                 if Config.lfPersistence then
                     TriggerEvent('Persistance:removeVehicles', vehicle)
                 end
+                TriggerEvent('ox_inventory:clearVehicle', vehicle)
+                SetVehicleHasBeenOwnedByPlayer(vehicle, false)
+                SetEntityAsMissionEntity(vehicle, true, true)
+                Citizen.Wait(100)
                 ESX.Game.DeleteVehicle(vehicle)
                 ESX.ShowNotification('Véhicule de service déposé pour ' .. Config.Parkings[parkingId].price.deposit .. '$')
             end
@@ -214,6 +218,10 @@ function DepositVehicle(parkingId)
                 if Config.lfPersistence then
                     TriggerEvent('Persistance:removeVehicles', vehicle)
                 end
+                TriggerEvent('ox_inventory:clearVehicle', vehicle)
+                SetVehicleHasBeenOwnedByPlayer(vehicle, false)
+                SetEntityAsMissionEntity(vehicle, true, true)
+                Citizen.Wait(100)
                 ESX.Game.DeleteVehicle(vehicle)
                 ESX.ShowNotification('Véhicule déposé pour ' .. Config.Parkings[parkingId].price.deposit .. '$')
             end
@@ -348,6 +356,10 @@ AddEventHandler('parking:spawnVehicle', function(vehicleData, engineHealth, whee
         return
     end
     
+    if not CurrentActionData or not CurrentActionData.parkingId then
+        return
+    end
+    
     local spawnPoint = Config.Parkings[CurrentActionData.parkingId].spawnPoint
     local isBoatParking = Config.Parkings[CurrentActionData.parkingId].type == "boat"
     
@@ -414,6 +426,10 @@ end)
 RegisterNetEvent('parking:spawnJobVehicle')
 AddEventHandler('parking:spawnJobVehicle', function(vehicleData)
     if not vehicleData or not vehicleData.model then
+        return
+    end
+    
+    if not CurrentActionData or not CurrentActionData.parkingId then
         return
     end
     
