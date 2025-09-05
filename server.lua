@@ -6,12 +6,6 @@ local function hasAccessToVehicle(identifier, plate)
     if result and result[1] and result[1].owner == identifier then
         hasAccess = true
     end
-    if not hasAccess then
-        local keyResult = MySQL.query.await('SELECT id FROM vehicle_key WHERE identifier = ? AND plate = ?', {identifier, plate})
-        if keyResult and keyResult[1] then
-            hasAccess = true
-        end
-    end
     
     return hasAccess
 end
@@ -19,7 +13,10 @@ end
 ESX.RegisterServerCallback('parking:depositVehicle', function(source, cb, vehicleProps, parkingId, engineHealth, wheelHealth)
     local xPlayer = ESX.GetPlayerFromId(source)
     local identifier = xPlayer.identifier
-    if not hasAccessToVehicle(identifier, vehicleProps.plate) then
+    
+    local allowStolen = Config.Parkings[parkingId].allowStolen or false
+    
+    if not allowStolen and not hasAccessToVehicle(identifier, vehicleProps.plate) then
         TriggerClientEvent('esx:showNotification', source, 'Vous n\'avez pas les clés de ce véhicule')
         cb(false)
         return
@@ -34,10 +31,30 @@ ESX.RegisterServerCallback('parking:depositVehicle', function(source, cb, vehicl
             wheel_health = wheelHealth
         }
         
-        MySQL.update('UPDATE owned_vehicles SET stored = ?, parking = ?, vehicle = ? WHERE plate = ?', 
-        {1, 'parking_' .. parkingId, json.encode(vehicleData), vehicleProps.plate}, function()
-            cb(true)
-        end)
+        if allowStolen then
+            local existingVehicle = MySQL.query.await('SELECT * FROM owned_vehicles WHERE plate = ?', {vehicleProps.plate})
+            if existingVehicle and existingVehicle[1] then
+                if existingVehicle[1].owner and existingVehicle[1].owner ~= identifier then
+                    TriggerClientEvent('esx:showNotification', source, 'Ce véhicule appartient à quelqu\'un d\'autre')
+                    cb(false)
+                    return
+                end
+                MySQL.update('UPDATE owned_vehicles SET stored = ?, parking = ?, vehicle = ? WHERE plate = ?', 
+                {1, 'parking_' .. parkingId, json.encode(vehicleData), vehicleProps.plate}, function()
+                    cb(true)
+                end)
+            else
+                MySQL.insert('INSERT INTO owned_vehicles (owner, plate, vehicle, type, stored, parking) VALUES (?, ?, ?, ?, ?, ?)', 
+                {identifier, vehicleProps.plate, json.encode(vehicleData), 'car', 1, 'parking_' .. parkingId}, function()
+                    cb(true)
+                end)
+            end
+        else
+            MySQL.update('UPDATE owned_vehicles SET stored = ?, parking = ?, vehicle = ? WHERE plate = ?', 
+            {1, 'parking_' .. parkingId, json.encode(vehicleData), vehicleProps.plate}, function()
+                cb(true)
+            end)
+        end
     else
         cb(false)
         TriggerClientEvent('esx:showNotification', source, 'Vous n\'avez pas assez d\'argent')
@@ -48,10 +65,19 @@ ESX.RegisterServerCallback('parking:getVehicles', function(source, cb, parkingId
     local xPlayer = ESX.GetPlayerFromId(source)
     local identifier = xPlayer.identifier
     
-    MySQL.query('SELECT * FROM owned_vehicles WHERE parking = ? AND (owner = ? OR EXISTS (SELECT 1 FROM vehicle_key WHERE plate = owned_vehicles.plate AND identifier = ?))',
-    {'parking_' .. parkingId, identifier, identifier}, function(vehicles)
-        cb(vehicles or {})
-    end)
+    local allowStolen = Config.Parkings[parkingId].allowStolen or false
+    
+    if allowStolen then
+        MySQL.query('SELECT * FROM owned_vehicles WHERE parking = ? AND (owner = ? OR owner IS NULL)',
+        {'parking_' .. parkingId, identifier}, function(vehicles)
+            cb(vehicles or {})
+        end)
+    else
+        MySQL.query('SELECT * FROM owned_vehicles WHERE parking = ? AND owner = ?',
+        {'parking_' .. parkingId, identifier}, function(vehicles)
+            cb(vehicles or {})
+        end)
+    end
 end)
 
 RegisterServerEvent('parking:retrieveVehicle')
@@ -63,10 +89,19 @@ AddEventHandler('parking:retrieveVehicle', function(plate, parkingId)
         local vehicle = MySQL.query.await('SELECT * FROM owned_vehicles WHERE plate = ? AND parking = ?', {plate, 'parking_' .. parkingId})
         
         if vehicle and vehicle[1] then
-            local hasAccess = hasAccessToVehicle(identifier, vehicle[1].plate)
-            if not hasAccess then
-                TriggerClientEvent('esx:showNotification', source, 'Vous n\'avez pas les clés de ce véhicule')
-                return
+            local allowStolen = Config.Parkings[parkingId].allowStolen or false
+            
+            if not allowStolen then
+                local hasAccess = hasAccessToVehicle(identifier, vehicle[1].plate)
+                if not hasAccess then
+                    TriggerClientEvent('esx:showNotification', source, 'Vous n\'avez pas les clés de ce véhicule')
+                    return
+                end
+            else
+                if vehicle[1].owner and vehicle[1].owner ~= identifier then
+                    TriggerClientEvent('esx:showNotification', source, 'Ce véhicule appartient à quelqu\'un d\'autre')
+                    return
+                end
             end
 
             xPlayer.removeMoney(Config.Parkings[parkingId].price.retrieve)
@@ -76,8 +111,13 @@ AddEventHandler('parking:retrieveVehicle', function(plate, parkingId)
             local engineHealth = vehicleData.engine_health or 1000.0
             local wheelHealth = vehicleData.wheel_health or {1000.0, 1000.0, 1000.0, 1000.0}
             
-            MySQL.update.await('UPDATE owned_vehicles SET stored = ?, parking = NULL, vehicle = ? WHERE plate = ?', 
-            {0, json.encode(vehicleProps), plate})
+            if allowStolen and not vehicle[1].owner then
+                MySQL.update.await('UPDATE owned_vehicles SET stored = ?, parking = NULL, vehicle = ?, owner = ? WHERE plate = ?', 
+                {0, json.encode(vehicleProps), identifier, plate})
+            else
+                MySQL.update.await('UPDATE owned_vehicles SET stored = ?, parking = NULL, vehicle = ? WHERE plate = ?', 
+                {0, json.encode(vehicleProps), plate})
+            end
             
             TriggerClientEvent('parking:spawnVehicle', source, vehicleProps, engineHealth, wheelHealth)
             

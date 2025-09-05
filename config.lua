@@ -1,37 +1,39 @@
 Config = {}
 
-Config.lfPersistence = false
+Config.lfPersistence = true
 
 Config.Parkings = {
     {
-        id = 4,
+        id = 1,
         name = "Parking Bateaux",
-        depositPoint = vector3(-931.72, 6482.40, 1.10),
-        retrievePoint = vector3(-939.66, 6491.27, 1.89),
+        depositPoint = vector3(-802.325256, -1500.553834, 1.500000),
+        retrievePoint = vector3(-806.505494, -1496.967042, 1.57873),
         spawnPoint = {
-            coords = vector3(-947.46, 6504.06, 2.95),
-            heading = 170.0
+            coords = vector3(-806.690124, -1492.364868, 0.112792),
+            heading = 110.55
         },
         price = {
             deposit = 100,
             retrieve = 100
         },
-        type = "boat"
+        type = "boat",
+        allowStolen = true
     },
     {
-        id = 5,
+        id = 2,
         name = "Parking Bateaux",
-        depositPoint = vector3(4938.16, -5134.88, 1.22),
-        retrievePoint = vector3(4931.25, -5146.31, 2.48),
+        depositPoint = vector3(-1613.432984, 5266.958008, 0.180176),
+        retrievePoint = vector3(-1605.112060, 5257.516602, 2.067382),
         spawnPoint = {
-            coords = vector3(4928.28, -5158.88, 1.58),
-            heading = 56.14
+            coords = vector3(-1602.883544, 5260.562500, 0.112792),
+            heading = 22.677164
         },
         price = {
             deposit = 50,
             retrieve = 50
         },
-        type = "boat"
+        type = "boat",
+        allowStolen = false
     },
     {
         id = 6,
@@ -47,7 +49,8 @@ Config.Parkings = {
             retrieve = 0
         },
         type = "boat",
-        job = "police"
+        job = "police",
+        allowStolen = false
     }
 }
 
