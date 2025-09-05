@@ -344,6 +344,10 @@ end
 
 RegisterNetEvent('parking:spawnVehicle')
 AddEventHandler('parking:spawnVehicle', function(vehicleData, engineHealth, wheelHealth)
+    if not vehicleData or not vehicleData.model then
+        return
+    end
+    
     local spawnPoint = Config.Parkings[CurrentActionData.parkingId].spawnPoint
     local isBoatParking = Config.Parkings[CurrentActionData.parkingId].type == "boat"
     
@@ -409,6 +413,10 @@ end)
 
 RegisterNetEvent('parking:spawnJobVehicle')
 AddEventHandler('parking:spawnJobVehicle', function(vehicleData)
+    if not vehicleData or not vehicleData.model then
+        return
+    end
+    
     local spawnPoint = Config.Parkings[CurrentActionData.parkingId].spawnPoint
     local isBoatParking = Config.Parkings[CurrentActionData.parkingId].type == "boat"
     
