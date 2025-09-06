@@ -4,7 +4,7 @@ Un système de parking avancé pour serveurs ESX avec support des bateaux et vé
 
 ## Fonctionnalités
 
-- **Parking de bateaux**
+- **Parking voitures/bateaux**
 - **Parkings réservés par job** (police, etc.)
 - **Système de prix** configurable pour dépôt/récupération
 - **Interface RageUI** moderne et intuitive
