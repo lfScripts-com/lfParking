@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 author 'lfScripts, xLaugh, Firgyy'
 lua54 'yes'
-version '0.0.1'
+version '0.0.2'
 escrow_ignore {
     'config.lua',
     'client.lua',
