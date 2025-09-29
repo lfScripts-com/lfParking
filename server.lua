@@ -23,38 +23,34 @@ ESX.RegisterServerCallback('parking:depositVehicle', function(source, cb, vehicl
     end
 
     if xPlayer.getMoney() >= Config.Parkings[parkingId].price.deposit then
-        xPlayer.removeMoney(Config.Parkings[parkingId].price.deposit)
-        
-        local vehicleData = {
-            vehicle = vehicleProps,
-            engine_health = engineHealth,
-            wheel_health = wheelHealth
-        }
-        
-        if allowStolen then
-            local existingVehicle = MySQL.query.await('SELECT * FROM owned_vehicles WHERE plate = ?', {vehicleProps.plate})
-            if existingVehicle and existingVehicle[1] then
-                if existingVehicle[1].owner and existingVehicle[1].owner ~= identifier then
-                    TriggerClientEvent('esx:showNotification', source, 'Ce véhicule appartient à quelqu\'un d\'autre')
-                    cb(false)
-                    return
-                end
-                MySQL.update('UPDATE owned_vehicles SET stored = ?, parking = ?, vehicle = ? WHERE plate = ?', 
-                {1, 'parking_' .. parkingId, json.encode(vehicleData), vehicleProps.plate}, function()
-                    cb(true)
-                end)
-            else
-                MySQL.insert('INSERT INTO owned_vehicles (owner, plate, vehicle, type, stored, parking) VALUES (?, ?, ?, ?, ?, ?)', 
-                {identifier, vehicleProps.plate, json.encode(vehicleData), 'car', 1, 'parking_' .. parkingId}, function()
-                    cb(true)
-                end)
-            end
-        else
-            MySQL.update('UPDATE owned_vehicles SET stored = ?, parking = ?, vehicle = ? WHERE plate = ?', 
-            {1, 'parking_' .. parkingId, json.encode(vehicleData), vehicleProps.plate}, function()
-                cb(true)
-            end)
-        end
+		xPlayer.removeMoney(Config.Parkings[parkingId].price.deposit)
+		
+		local vehicleData = {
+			vehicle = vehicleProps,
+			engine_health = engineHealth,
+			wheel_health = wheelHealth
+		}
+		
+		if allowStolen then
+			local existingVehicle = MySQL.query.await('SELECT * FROM owned_vehicles WHERE plate = ?', {vehicleProps.plate})
+			if existingVehicle and existingVehicle[1] and (not existingVehicle[1].owner or existingVehicle[1].owner == identifier) then
+				MySQL.update('UPDATE owned_vehicles SET stored = ?, parking = ?, vehicle = ? WHERE plate = ?', 
+				{1, 'parking_' .. parkingId, json.encode(vehicleData), vehicleProps.plate}, function()
+					cb(true)
+				end)
+			else
+				MySQL.query.await('DELETE FROM parking_vehicles WHERE plate = ? AND parking_id = ?', {vehicleProps.plate, parkingId})
+				MySQL.insert('INSERT INTO parking_vehicles (plate, vehicle, parking_id, engine_health, wheel_health_1, wheel_health_2, wheel_health_3, wheel_health_4) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+				{vehicleProps.plate, json.encode(vehicleProps), parkingId, engineHealth or 1000.0, wheelHealth and wheelHealth[1] or 1000.0, wheelHealth and wheelHealth[2] or 1000.0, wheelHealth and wheelHealth[3] or 1000.0, wheelHealth and wheelHealth[4] or 1000.0}, function()
+					cb(true)
+				end)
+			end
+		else
+			MySQL.update('UPDATE owned_vehicles SET stored = ?, parking = ?, vehicle = ? WHERE plate = ?', 
+			{1, 'parking_' .. parkingId, json.encode(vehicleData), vehicleProps.plate}, function()
+				cb(true)
+			end)
+		end
     else
         cb(false)
         TriggerClientEvent('esx:showNotification', source, 'Vous n\'avez pas assez d\'argent')
@@ -67,12 +63,18 @@ ESX.RegisterServerCallback('parking:getVehicles', function(source, cb, parkingId
     
     local allowStolen = Config.Parkings[parkingId].allowStolen or false
     
-    if allowStolen then
-        MySQL.query('SELECT * FROM owned_vehicles WHERE parking = ? AND (owner = ? OR owner IS NULL)',
-        {'parking_' .. parkingId, identifier}, function(vehicles)
-            cb(vehicles or {})
-        end)
-    else
+	if allowStolen then
+		MySQL.query('SELECT * FROM owned_vehicles WHERE parking = ? AND owner = ?',
+		{'parking_' .. parkingId, identifier}, function(owned)
+			local ownedList = owned or {}
+			MySQL.query('SELECT plate, vehicle FROM parking_vehicles WHERE parking_id = ?', {parkingId}, function(stolen)
+				local result = {}
+				for _, v in ipairs(ownedList) do table.insert(result, v) end
+				for _, s in ipairs(stolen or {}) do table.insert(result, s) end
+				cb(result)
+			end)
+		end)
+	else
         MySQL.query('SELECT * FROM owned_vehicles WHERE parking = ? AND owner = ?',
         {'parking_' .. parkingId, identifier}, function(vehicles)
             cb(vehicles or {})
@@ -86,9 +88,9 @@ AddEventHandler('parking:retrieveVehicle', function(plate, parkingId)
     local xPlayer = ESX.GetPlayerFromId(source)
     local identifier = xPlayer.identifier
     if xPlayer.getMoney() >= Config.Parkings[parkingId].price.retrieve then
-        local vehicle = MySQL.query.await('SELECT * FROM owned_vehicles WHERE plate = ? AND parking = ?', {plate, 'parking_' .. parkingId})
-        
-        if vehicle and vehicle[1] then
+		local vehicle = MySQL.query.await('SELECT * FROM owned_vehicles WHERE plate = ? AND parking = ?', {plate, 'parking_' .. parkingId})
+		
+		if vehicle and vehicle[1] then
             local allowStolen = Config.Parkings[parkingId].allowStolen or false
             
             if not allowStolen then
@@ -122,8 +124,29 @@ AddEventHandler('parking:retrieveVehicle', function(plate, parkingId)
             TriggerClientEvent('parking:spawnVehicle', source, vehicleProps, engineHealth, wheelHealth)
             
             TriggerClientEvent('esx:showNotification', source, 'Véhicule récupéré pour ' .. Config.Parkings[parkingId].price.retrieve .. '$')
-        else
-            TriggerClientEvent('esx:showNotification', source, 'Véhicule introuvable')
+		else
+			local allowStolen = Config.Parkings[parkingId].allowStolen or false
+			if not allowStolen then
+				TriggerClientEvent('esx:showNotification', source, 'Véhicule introuvable')
+				return
+			end
+			local stolen = MySQL.query.await('SELECT * FROM parking_vehicles WHERE plate = ? AND parking_id = ?', {plate, parkingId})
+			if stolen and stolen[1] then
+				xPlayer.removeMoney(Config.Parkings[parkingId].price.retrieve)
+				local vehicleProps = json.decode(stolen[1].vehicle)
+				local engineHealth = tonumber(stolen[1].engine_health) or 1000.0
+				local wheelHealth = {
+					tonumber(stolen[1].wheel_health_1) or 1000.0,
+					tonumber(stolen[1].wheel_health_2) or 1000.0,
+					tonumber(stolen[1].wheel_health_3) or 1000.0,
+					tonumber(stolen[1].wheel_health_4) or 1000.0
+				}
+				MySQL.query.await('DELETE FROM parking_vehicles WHERE id = ?', {stolen[1].id})
+				TriggerClientEvent('parking:spawnVehicle', source, vehicleProps, engineHealth, wheelHealth)
+				TriggerClientEvent('esx:showNotification', source, 'Véhicule récupéré pour ' .. Config.Parkings[parkingId].price.retrieve .. '$')
+			else
+				TriggerClientEvent('esx:showNotification', source, 'Véhicule introuvable')
+			end
         end
     else
         TriggerClientEvent('esx:showNotification', source, 'Vous n\'avez pas assez d\'argent')
