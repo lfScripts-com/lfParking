@@ -1,5 +1,7 @@
 Config = {}
 
+Config.ESXMode = 'new' -- 'old' ou 'new' (compatibilité ESX)
+
 Config.lfPersistence = false
 
 Config.Parkings = {
